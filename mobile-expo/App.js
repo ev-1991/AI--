@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   Share,
@@ -227,6 +229,12 @@ function MessageBubble({ message, onOpenFile }) {
       <Text style={[styles.senderRole, isPatient && styles.patientSubtext]}>{message.senderRole} · {formatDate(message.createdAt)}</Text>
       {message.file ? <FilePreview file={message.file} onOpen={onOpenFile} /> : null}
       <Text style={isPatient ? styles.patientText : styles.text}>{message.text}</Text>
+      {message.role === "ai" ? (
+        <View style={styles.knowledgeRow}>
+          <Text style={styles.knowledgeBadge}>✓ По базе знаний КазНИИОиР</Text>
+          <TouchableOpacity onPress={() => Alert.alert("Источник", "Проверенная база знаний КазНИИОиР")}><Text style={styles.sourceLink}>Источник</Text></TouchableOpacity>
+        </View>
+      ) : null}
       {isStaff ? <Text style={styles.readStatus}>{message.read ? "Прочитано" : "Непрочитано"}</Text> : null}
     </View>
   );
@@ -254,6 +262,12 @@ export default function App() {
   const [newEmployeePassword, setNewEmployeePassword] = useState("");
   const [audit, setAudit] = useState([]);
   const [employees, setEmployees] = useState(staffUsers);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [routeOpen, setRouteOpen] = useState(false);
+  const [safetyExpanded, setSafetyExpanded] = useState(false);
+  const [aiThinking, setAiThinking] = useState(false);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const chatScrollRef = useRef(null);
 
   const activePatient = useMemo(() => patients.find((item) => item.id === activePatientId) || patients[0], [patients, activePatientId]);
   const isStaff = mode === "staff";
@@ -303,6 +317,15 @@ export default function App() {
     setStaffLogin("");
     setStaffPassword("");
     setPendingFile(null);
+    setProfileOpen(false);
+    setRouteOpen(false);
+  };
+
+  const confirmLogout = () => {
+    Alert.alert("Выйти из аккаунта?", "Текущий сеанс будет завершён.", [
+      { text: "Отмена", style: "cancel" },
+      { text: "Выйти", style: "destructive", onPress: logout }
+    ]);
   };
 
   const pickDocument = async () => {
@@ -351,35 +374,43 @@ export default function App() {
   };
 
   const sendPatientQuestion = () => {
-    if (!messageText.trim() && !pendingFile) return;
+    if (aiThinking || (!messageText.trim() && !pendingFile)) return;
     const text = messageText.trim() || `Вложение: ${fileName(pendingFile)}`;
+    const file = pendingFile;
+    const patientId = activePatient.id;
+    const patientFullName = activePatient.fullName;
     const patientMessage = {
       id: `m-${Date.now()}`,
       role: "patient",
-      senderName: activePatient.fullName,
+      senderName: patientFullName,
       senderRole: "Пациент",
       text,
-      file: pendingFile,
+      file,
       createdAt: now(),
       read: true
     };
-    const answer = findAnswer(text);
-    const aiMessage = {
-      id: `m-ai-${Date.now()}`,
-      role: "ai",
-      senderName: "KazONCO AI",
-      senderRole: "AI-агент",
-      text: pendingFile ? `${answer.text}\n\nВложение принято. Медицинскую интерпретацию фото или документа должен подтвердить врач.` : answer.text,
-      createdAt: now(),
-      read: true
-    };
-    addMessageToPatient(activePatient.id, patientMessage);
-    addMessageToPatient(activePatient.id, aiMessage, { status: answer.status });
-    if (answer.status === "Требует внимания" || answer.status === "Передано специалисту") {
-      log(`AI пометил обращение пациента ${activePatient.fullName}: ${answer.status}`);
-    }
+    addMessageToPatient(patientId, patientMessage);
     setMessageText("");
     setPendingFile(null);
+    setAiThinking(true);
+    setTimeout(() => {
+      const answer = findAnswer(text);
+      const aiMessage = {
+        id: `m-ai-${Date.now()}`,
+        role: "ai",
+        senderName: "KazONCO AI",
+        senderRole: "AI-агент",
+        text: file ? `${answer.text}\n\nВложение принято. Медицинскую интерпретацию фото или документа должен подтвердить врач.` : answer.text,
+        createdAt: now(),
+        read: true
+      };
+      addMessageToPatient(patientId, aiMessage, { status: answer.status });
+      if (answer.status === "Требует внимания" || answer.status === "Передано специалисту") {
+        log(`AI пометил обращение пациента ${patientFullName}: ${answer.status}`);
+      }
+      setAiThinking(false);
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 40);
+    }, 420);
   };
 
   const sendStaffReply = () => {
@@ -452,35 +483,49 @@ export default function App() {
 
   const renderChat = () => {
     return (
-      <View style={styles.flex}>
-        <ScrollView style={styles.chat} contentContainerStyle={styles.chatContent}>
-          {activePatient.messages.map((message) => <MessageBubble key={message.id} message={message} onOpenFile={openFile} />)}
-        </ScrollView>
-        {pendingFile ? <FilePreview file={pendingFile} onOpen={openFile} /> : null}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickQuestions}>
-          {quickPatientQuestions.map((question) => (
-            <TouchableOpacity key={question} style={styles.quickQuestion} onPress={() => setMessageText(question)}>
-              <Text style={styles.quickQuestionText}>{question}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <View style={styles.composer}>
-          <TouchableOpacity style={styles.attachCircle} onPress={pickDocument}><Text style={styles.attachCircleText}>＋</Text></TouchableOpacity>
-          <TextInput style={styles.messageInput} placeholder="Напишите сообщение..." value={messageText} onChangeText={setMessageText} />
-          <TouchableOpacity style={styles.sendButton} onPress={sendPatientQuestion}><Text style={styles.sendText}>➤</Text></TouchableOpacity>
-        </View>
-        <Text style={styles.patientSafetyNote}>AI-помощник отвечает по проверенным материалам, не ставит диагноз и не меняет назначения врача. При опасных симптомах обратитесь за медицинской помощью.</Text>
-        <View style={styles.patientBottomActions}>
-          <TouchableOpacity style={styles.routeAction} onPress={() => setActiveTab("nav")}>
-            <Text style={styles.routeActionIcon}>⌘</Text>
-            <View><Text style={styles.routeActionTitle}>Маршрут</Text><Text style={styles.routeActionHint}>Весь путь пациента</Text></View>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={6}>
+        <View style={styles.flex}>
+          <ScrollView
+            ref={chatScrollRef}
+            style={styles.chat}
+            contentContainerStyle={styles.chatContent}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: false })}
+            onScroll={(event) => {
+              const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+              setShowScrollDown(contentSize.height - contentOffset.y - layoutMeasurement.height > 150);
+            }}
+            scrollEventThrottle={80}
+          >
+            {activePatient.messages.map((message) => <MessageBubble key={message.id} message={message} onOpenFile={openFile} />)}
+          </ScrollView>
+          {showScrollDown ? (
+            <TouchableOpacity style={styles.scrollDownButton} onPress={() => chatScrollRef.current?.scrollToEnd({ animated: true })}><Text style={styles.scrollDownText}>↓</Text></TouchableOpacity>
+          ) : null}
+          <TouchableOpacity style={styles.routeFab} onPress={() => setRouteOpen(true)}>
+            <Text style={styles.routeFabIcon}>⌘</Text><Text style={styles.routeFabText}>Маршрут</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.exitAction} onPress={logout}>
-            <Text style={styles.exitActionIcon}>↪</Text>
-            <View><Text style={styles.exitActionTitle}>Выйти</Text><Text style={styles.routeActionHint}>Завершить сеанс</Text></View>
+          {aiThinking ? <View style={styles.aiThinking}><Text style={styles.aiThinkingDot}>●</Text><Text style={styles.aiThinkingText}>Поиск в базе знаний…</Text></View> : null}
+          {pendingFile ? <FilePreview file={pendingFile} onOpen={openFile} /> : null}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickQuestions} keyboardShouldPersistTaps="handled">
+            {quickPatientQuestions.map((question) => (
+              <TouchableOpacity key={question} style={styles.quickQuestion} onPress={() => setMessageText(question)}>
+                <Text style={styles.quickQuestionText}>{question}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <View style={styles.composer}>
+            <TouchableOpacity style={styles.attachCircle} onPress={pickDocument}><Text style={styles.attachCircleText}>＋</Text></TouchableOpacity>
+            <TextInput style={styles.messageInput} placeholder="Напишите сообщение..." value={messageText} onChangeText={setMessageText} returnKeyType="send" onSubmitEditing={sendPatientQuestion} />
+            <TouchableOpacity style={[styles.sendButton, aiThinking && styles.sendButtonDisabled]} disabled={aiThinking} onPress={sendPatientQuestion}><Text style={styles.sendText}>➤</Text></TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.patientSafetyBar} onPress={() => setSafetyExpanded((value) => !value)} activeOpacity={0.8}>
+            <Text style={styles.patientSafetyTitle}>ⓘ AI не ставит диагноз и не заменяет врача</Text>
+            <Text style={styles.patientSafetyChevron}>{safetyExpanded ? "⌃" : "⌄"}</Text>
           </TouchableOpacity>
+          {safetyExpanded ? <Text style={styles.patientSafetyDetails}>AI-помощник отвечает по проверенным материалам и не меняет назначения врача. При опасных симптомах срочно обратитесь за медицинской помощью.</Text> : null}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     );
   };
 
@@ -611,11 +656,23 @@ export default function App() {
     );
   };
 
+  const renderSafety = () => (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Безопасность AI</Text>
+        <Text style={styles.text}>AI использует проверенную базу знаний КазНИИОиР, не ставит диагноз, не назначает лечение и не меняет дозировки препаратов.</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.titleSmall}>Когда нужен врач срочно</Text>
+        <Text style={styles.text}>Кровотечение, выраженная одышка, потеря сознания, сильная боль, высокая температура или резкое ухудшение состояния требуют срочного обращения за медицинской помощью.</Text>
+      </View>
+    </ScrollView>
+  );
+
   const patientTabs = [
     ["chat", "Чат"],
-    ["faq", "FAQ"],
-    ["nav", "Навигация"],
-    ["appeals", "Мои обращения"]
+    ["appeals", "Пациент"],
+    ["safety", "Безопасность"]
   ];
 
   const staffTabs = [
@@ -632,14 +689,14 @@ export default function App() {
       <View style={styles.header}>
         <View style={styles.mobileHeaderLeft}>
           <Text style={styles.mobileMenuIcon}>☰</Text>
-          <View>
+          <View style={styles.headerBrandBlock}>
             <Text style={styles.logo}>KazONCO AI</Text>
-            <Text style={styles.headerStatus}>● {isStaff ? `${staff.fullName} · ${roles[staff.role]}` : "AI-помощник КазНИИОиР"}</Text>
+            <Text numberOfLines={1} style={styles.headerStatus}>● {isStaff ? `${staff.fullName} · ${roles[staff.role]}` : "AI-помощник КазНИИОиР"}</Text>
           </View>
         </View>
         <View style={styles.headerActions}>
-          <View style={styles.languageBadge}><Text style={styles.languageBadgeText}>RU</Text></View>
-          <TouchableOpacity style={styles.avatarButton} onPress={() => isPatient ? setActiveTab("appeals") : null}>
+          <TouchableOpacity style={styles.languageBadge} onPress={() => setProfileOpen(true)}><Text style={styles.languageBadgeText}>🌐</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.avatarButton} onPress={() => setProfileOpen(true)}>
             <Text style={styles.avatarText}>{(isStaff ? staff.fullName : activePatient.fullName).trim().charAt(0).toUpperCase() || "П"}</Text>
             <View style={styles.avatarOnline} />
           </TouchableOpacity>
@@ -653,14 +710,38 @@ export default function App() {
         ))}
       </View>
       {isPatient && activeTab === "chat" ? renderChat() : null}
-      {isPatient && activeTab === "faq" ? renderFaq() : null}
-      {isPatient && activeTab === "nav" ? renderNavigation() : null}
       {isPatient && activeTab === "appeals" ? renderAppeals() : null}
+      {isPatient && activeTab === "safety" ? renderSafety() : null}
       {isStaff && activeTab === "requests" ? renderRequests() : null}
       {isStaff && activeTab === "kb" ? renderKnowledgeAdmin() : null}
       {isStaff && activeTab === "analytics" ? renderAnalytics() : null}
       {isStaff && activeTab === "super" ? renderSuperAdmin() : null}
-      <Text style={styles.footer}>© IT-System Solution • Тимченко Евгений Юрьевич</Text>
+      {!(isPatient && activeTab === "chat") ? <Text style={styles.footer}>© IT-System Solution • Тимченко Евгений Юрьевич</Text> : null}
+      <Modal visible={profileOpen} transparent animationType="fade" onRequestClose={() => setProfileOpen(false)}>
+        <TouchableOpacity style={styles.profileOverlay} activeOpacity={1} onPress={() => setProfileOpen(false)}>
+          <View style={styles.profileMenu} onStartShouldSetResponder={() => true}>
+            <Text style={styles.profileName}>{isStaff ? staff.fullName : activePatient.fullName}</Text>
+            <Text style={styles.profileRole}>{isStaff ? roles[staff.role] : "Профиль пациента"}</Text>
+            <TouchableOpacity style={styles.profileAction} onPress={() => { setProfileOpen(false); if (isPatient) setActiveTab("appeals"); }}><Text style={styles.profileActionText}>👤 Профиль</Text></TouchableOpacity>
+            <View style={styles.profileLanguages}><Text style={styles.profileLanguageActive}>RU</Text><Text style={styles.profileLanguage}>KZ</Text><Text style={styles.profileLanguage}>EN</Text></View>
+            <TouchableOpacity style={styles.profileActionDanger} onPress={confirmLogout}><Text style={styles.profileDangerText}>↪ Выйти</Text></TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal visible={routeOpen} transparent animationType="slide" onRequestClose={() => setRouteOpen(false)}>
+        <View style={styles.routeOverlay}>
+          <TouchableOpacity style={styles.routeBackdrop} activeOpacity={1} onPress={() => setRouteOpen(false)} />
+          <View style={styles.routeSheet}>
+            <View style={styles.routeHandle} />
+            <View style={styles.rowBetween}><View><Text style={styles.titleSmall}>Маршрут пациента</Text><Text style={styles.muted}>Не закрывает текущий чат</Text></View><TouchableOpacity style={styles.routeClose} onPress={() => setRouteOpen(false)}><Text style={styles.routeCloseText}>×</Text></TouchableOpacity></View>
+            <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ paddingTop: 10 }}>
+              {navigationItems.map((item, index) => (
+                <View key={item.title} style={styles.routeSheetItem}><Text style={styles.routeStep}>{index + 1}</Text><View style={{ flex: 1 }}><Text style={styles.titleSmall}>{item.title}</Text><Text style={styles.muted}>{item.place}</Text><Text style={styles.text}>{item.route}</Text></View></View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={Boolean(viewerFile)} transparent animationType="fade">
         <View style={styles.modal}>
           <TouchableOpacity style={styles.modalClose} onPress={() => setViewerFile(null)}><Text style={styles.primaryText}>Закрыть</Text></TouchableOpacity>
@@ -679,24 +760,24 @@ const styles = StyleSheet.create({
   assistantBanner: { margin: 12, marginBottom: 0, padding: 14, borderRadius: 8, backgroundColor: "#e8f4f8", borderWidth: 1, borderColor: "#b9dce8", gap: 6 },
   quickQuestions: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   quickQuestion: { maxWidth: 240, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 18, backgroundColor: "white", borderWidth: 1, borderColor: "#b9dce8" },
-  quickQuestionText: { color: "#0f6c8f", fontWeight: "700", fontSize: 13 },
-  header: { minHeight: 68, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#d8e3e7", backgroundColor: "white", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  quickQuestionText: { color: "#0f6c8f", fontWeight: "700", fontSize: 12 },
+  header: { minHeight: 54, paddingHorizontal: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: "#d8e3e7", backgroundColor: "white", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   mobileHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 9, flex: 1 },
-  mobileMenuIcon: { color: "#073c5b", fontSize: 24, fontWeight: "800" },
+  mobileMenuIcon: { color: "#073c5b", fontSize: 22, fontWeight: "800" },
   headerStatus: { color: "#64727d", fontSize: 11, marginTop: 2 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 7 },
-  languageBadge: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center", backgroundColor: "white" },
-  languageBadgeText: { color: "#073c5b", fontSize: 10, fontWeight: "900" },
-  avatarButton: { position: "relative", width: 40, height: 40, borderRadius: 20, backgroundColor: "#0f6c8f", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "white", fontSize: 17, fontWeight: "900" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 3 },
+  languageBadge: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "white" },
+  languageBadgeText: { color: "#073c5b", fontSize: 18, fontWeight: "900" },
+  avatarButton: { position: "relative", width: 34, height: 34, borderRadius: 17, backgroundColor: "#0f6c8f", alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "white", fontSize: 15, fontWeight: "900" },
   avatarOnline: { position: "absolute", right: 0, bottom: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: "#28b36b", borderWidth: 2, borderColor: "white" },
-  logo: { color: "#073c5b", fontSize: 23, fontWeight: "900" },
+  logo: { color: "#073c5b", fontSize: 20, fontWeight: "900" },
   title: { fontSize: 24, color: "#1e2933", fontWeight: "800" },
   titleSmall: { fontSize: 17, color: "#1e2933", fontWeight: "800" },
   sectionTitle: { marginVertical: 8, color: "#073c5b", fontSize: 18, fontWeight: "900" },
   muted: { color: "#64727d", lineHeight: 20 },
   hint: { color: "#64727d", fontSize: 12, lineHeight: 18 },
-  text: { color: "#1e2933", lineHeight: 21 },
+  text: { color: "#1e2933", fontSize: 16, lineHeight: 23 },
   input: { minHeight: 44, borderWidth: 1, borderColor: "#d8e3e7", borderRadius: 8, paddingHorizontal: 12, backgroundColor: "#fbfdfe" },
   textArea: { minHeight: 110, paddingTop: 12, textAlignVertical: "top" },
   primaryButton: { minHeight: 46, borderRadius: 8, backgroundColor: "#0f6c8f", alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
@@ -705,24 +786,24 @@ const styles = StyleSheet.create({
   secondaryButton: { minHeight: 42, borderRadius: 8, borderWidth: 1, borderColor: "#0f6c8f", alignItems: "center", justifyContent: "center", paddingHorizontal: 14 },
   secondaryText: { color: "#0f6c8f", fontWeight: "800" },
   logoutButton: { minHeight: 36, borderRadius: 8, borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
-  tabs: { flexDirection: "row", gap: 7, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "white", borderBottomWidth: 1, borderBottomColor: "#edf2f5" },
-  tab: { flex: 1, minHeight: 44, paddingHorizontal: 9, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center" },
+  tabs: { flexDirection: "row", gap: 5, paddingHorizontal: 8, paddingVertical: 6, backgroundColor: "white", borderBottomWidth: 1, borderBottomColor: "#edf2f5" },
+  tab: { flex: 1, minHeight: 40, paddingHorizontal: 8, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center" },
   tabActive: { backgroundColor: "#e8f6fd", borderColor: "#b7dff2" },
-  tabText: { color: "#64727d", fontWeight: "800", fontSize: 11 },
+  tabText: { color: "#64727d", fontWeight: "800", fontSize: 13 },
   tabTextActive: { color: "#075fa9" },
   content: { padding: 14, paddingBottom: 90 },
   chat: { flex: 1 },
-  chatContent: { padding: 13, gap: 10, paddingBottom: 14 },
-  message: { padding: 12, borderRadius: 16, maxWidth: "88%", gap: 5 },
+  chatContent: { padding: 12, gap: 10, paddingBottom: 70 },
+  message: { padding: 12, borderRadius: 16, maxWidth: "90%", gap: 6 },
   patientMessage: { alignSelf: "flex-end", backgroundColor: "#eef7ff", borderWidth: 1, borderColor: "#7eb6ee" },
   aiMessage: { alignSelf: "flex-start", backgroundColor: "white", borderWidth: 1, borderColor: "#d8e3e7" },
   staffMessage: { alignSelf: "flex-start", backgroundColor: "#eef8fb", borderWidth: 1, borderColor: "#b7d9e6" },
   sender: { color: "#073c5b", fontWeight: "900" },
   senderRole: { color: "#64727d", fontSize: 12, fontWeight: "700" },
-  patientText: { color: "#1e2933", lineHeight: 21 },
+  patientText: { color: "#1e2933", fontSize: 16, lineHeight: 23 },
   patientSubtext: { color: "#64727d" },
   readStatus: { marginTop: 4, color: "#64727d", fontSize: 12 },
-  composer: { flexDirection: "row", gap: 7, marginHorizontal: 10, marginVertical: 7, padding: 7, borderWidth: 1, borderColor: "#dce5eb", borderRadius: 16, backgroundColor: "white", alignItems: "center" },
+  composer: { flexDirection: "row", gap: 6, marginHorizontal: 9, marginVertical: 6, padding: 6, borderWidth: 1, borderColor: "#dce5eb", borderRadius: 17, backgroundColor: "white", alignItems: "center" },
   attachCircle: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#eef4f7" },
   attachCircleText: { color: "#073c5b", fontSize: 22, fontWeight: "700" },
   patientSafetyNote: { paddingHorizontal: 18, paddingVertical: 7, color: "#667788", fontSize: 10, lineHeight: 15, textAlign: "center", backgroundColor: "white" },
@@ -738,8 +819,8 @@ const styles = StyleSheet.create({
   staffReply: { minHeight: 72, borderWidth: 1, borderColor: "#d8e3e7", borderRadius: 8, padding: 10, textAlignVertical: "top" },
   iconButton: { minHeight: 40, borderRadius: 8, backgroundColor: "#dceff5", justifyContent: "center", paddingHorizontal: 10 },
   iconText: { color: "#073c5b", fontWeight: "800", fontSize: 12 },
-  messageInput: { flex: 1, minHeight: 42, borderWidth: 1, borderColor: "#d8e3e7", borderRadius: 8, paddingHorizontal: 10, backgroundColor: "#fbfdfe" },
-  sendButton: { width: 42, height: 42, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#0f6c8f" },
+  messageInput: { flex: 1, minHeight: 44, borderWidth: 0, borderRadius: 10, paddingHorizontal: 8, backgroundColor: "white", fontSize: 16 },
+  sendButton: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#0f6c8f" },
   sendText: { color: "white", fontWeight: "900", fontSize: 18 },
   fileBox: { marginHorizontal: 14, marginVertical: 6, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: "#d8e3e7", backgroundColor: "white", flexDirection: "row", gap: 10, alignItems: "center" },
   fileImage: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#dceff5" },
@@ -761,6 +842,42 @@ const styles = StyleSheet.create({
   statValue: { color: "#073c5b", fontSize: 28, fontWeight: "900" },
   dangerText: { color: "#ba3329" },
   footer: { padding: 8, textAlign: "center", color: "#64727d", fontSize: 11, backgroundColor: "#eef4f6" },
+  headerBrandBlock: { flex: 1, minWidth: 0 },
+  knowledgeRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#edf2f5", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  knowledgeBadge: { flex: 1, color: "#1f7a58", fontSize: 10, fontWeight: "800" },
+  sourceLink: { color: "#0f6c8f", fontSize: 11, fontWeight: "800", paddingVertical: 6, paddingHorizontal: 8 },
+  aiThinking: { minHeight: 32, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fbfdff" },
+  aiThinkingDot: { color: "#28a46a", fontSize: 12 },
+  aiThinkingText: { color: "#64727d", fontSize: 12 },
+  sendButtonDisabled: { opacity: 0.5 },
+  patientSafetyBar: { minHeight: 38, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: "#edf2f5", backgroundColor: "white", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  patientSafetyTitle: { flex: 1, color: "#5a6b79", fontSize: 12, fontWeight: "700" },
+  patientSafetyChevron: { color: "#64727d", fontSize: 14, fontWeight: "800" },
+  patientSafetyDetails: { paddingHorizontal: 14, paddingBottom: 9, backgroundColor: "white", color: "#667788", fontSize: 12, lineHeight: 17 },
+  routeFab: { position: "absolute", zIndex: 8, right: 12, bottom: 137, minHeight: 38, paddingHorizontal: 12, borderRadius: 19, borderWidth: 1, borderColor: "#b9dce8", backgroundColor: "white", flexDirection: "row", alignItems: "center", gap: 6, shadowColor: "#073c5b", shadowOpacity: 0.12, shadowRadius: 10, elevation: 4 },
+  routeFabIcon: { color: "#075fa9", fontSize: 17, fontWeight: "900" },
+  routeFabText: { color: "#075fa9", fontSize: 12, fontWeight: "900" },
+  scrollDownButton: { position: "absolute", zIndex: 8, left: 12, bottom: 137, width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: "#d8e3e7", backgroundColor: "white", alignItems: "center", justifyContent: "center", elevation: 4 },
+  scrollDownText: { color: "#0f6c8f", fontSize: 18, fontWeight: "900" },
+  profileOverlay: { flex: 1, backgroundColor: "rgba(7,60,91,0.12)", alignItems: "flex-end", paddingTop: 58, paddingRight: 10 },
+  profileMenu: { width: 278, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: "#d8e3e7", backgroundColor: "white", gap: 7, elevation: 10 },
+  profileName: { color: "#1e2933", fontSize: 16, fontWeight: "900", paddingHorizontal: 7, paddingTop: 4 },
+  profileRole: { color: "#64727d", fontSize: 11, paddingHorizontal: 7, paddingBottom: 5 },
+  profileAction: { minHeight: 44, paddingHorizontal: 10, borderRadius: 11, backgroundColor: "#f8fbfc", justifyContent: "center" },
+  profileActionText: { color: "#1e2933", fontSize: 14, fontWeight: "800" },
+  profileLanguages: { flexDirection: "row", gap: 6 },
+  profileLanguage: { flex: 1, minHeight: 38, paddingVertical: 10, textAlign: "center", borderRadius: 10, borderWidth: 1, borderColor: "#d8e3e7", color: "#64727d", fontWeight: "800" },
+  profileLanguageActive: { flex: 1, minHeight: 38, paddingVertical: 10, textAlign: "center", borderRadius: 10, backgroundColor: "#e8f6fd", color: "#075fa9", fontWeight: "900" },
+  profileActionDanger: { minHeight: 44, paddingHorizontal: 10, borderRadius: 11, backgroundColor: "#fff7f7", justifyContent: "center" },
+  profileDangerText: { color: "#c92626", fontSize: 14, fontWeight: "900" },
+  routeOverlay: { flex: 1, justifyContent: "flex-end" },
+  routeBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(7,60,91,0.18)" },
+  routeSheet: { maxHeight: "68%", padding: 14, paddingBottom: 24, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: "white", elevation: 16 },
+  routeHandle: { width: 42, height: 4, borderRadius: 2, backgroundColor: "#d5e0e5", alignSelf: "center", marginBottom: 12 },
+  routeClose: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center" },
+  routeCloseText: { color: "#073c5b", fontSize: 22, fontWeight: "700" },
+  routeSheetItem: { flexDirection: "row", gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "#edf2f5" },
+  routeStep: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#e8f6fd", color: "#075fa9", textAlign: "center", textAlignVertical: "center", fontSize: 12, fontWeight: "900" },
   modal: { flex: 1, backgroundColor: "rgba(0,0,0,0.9)", alignItems: "center", justifyContent: "center" },
   modalClose: { position: "absolute", top: 42, right: 16, zIndex: 2, paddingHorizontal: 14, minHeight: 40, borderRadius: 8, backgroundColor: "#0f6c8f", alignItems: "center", justifyContent: "center" },
   modalImage: { width: "96%", height: "78%" }
