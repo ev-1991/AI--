@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>KazNIIOiR AI Agent</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <section id="login-screen" class="login-screen">
+      <div class="login-card">
+        <div class="login-top-actions">
+          <div class="language-switch" data-language-switch></div>
+          <button id="quick-login-button" class="primary-button compact" type="button"></button>
+        </div>
+        <img class="login-logo" src="assets/logo.png" alt="Kazakh Oncology Institute">
+        <p class="eyebrow" data-i18n="appEyebrow"></p>
+        <h1 data-i18n="patientLoginTitle"></h1>
+        <p class="lead" data-i18n="patientLoginLead"></p>
+        <form id="patient-login-form" class="login-form">
+          <label>
+            <span data-i18n="fullNameLabel"></span>
+            <input name="fullName" required autocomplete="name" data-i18n-placeholder="fullNamePlaceholder">
+          </label>
+          <label>
+            <!--<span data-i18n="iinLabel"></span>-->
+            <!--<input name="iin" inputmode="numeric" maxlength="12" data-i18n-placeholder="iinPlaceholder">-->
+          </label>
+          <button class="primary-button" type="submit" data-i18n="enterPatientCabinet"></button>
+        </form>
+        <div class="login-separator"></div>
+        <div class="staff-login-tabs">
+          <button class="secondary-button" type="button" data-staff-role="doctor" data-i18n="doctorLogin"></button>
+          <button class="secondary-button" type="button" data-staff-role="admin" data-i18n="adminPanelLogin"></button>
+          <button class="secondary-button" type="button" data-staff-role="director" data-i18n="directorLogin"></button>
+          <button class="secondary-button" type="button" data-staff-role="superadmin" data-i18n="superAdminLogin"></button>
+        </div>
+        <form id="staff-login-form" class="login-form staff-auth hidden">
+          <h2 id="staff-login-title" data-i18n="doctorLogin"></h2>
+          <label>
+            <span data-i18n="loginLabel"></span>
+            <input name="login" autocomplete="username" data-i18n-placeholder="loginPlaceholder">
+          </label>
+          <label>
+            <span data-i18n="passwordLabel"></span>
+            <input name="password" type="password" autocomplete="current-password" data-i18n-placeholder="passwordPlaceholder">
+          </label>
+          <label>
+            <span data-i18n="twoFactorLabel"></span>
+            <input name="twoFactor" inputmode="numeric" maxlength="6" data-i18n-placeholder="twoFactorPlaceholder">
+          </label>
+          <p id="staff-login-hint" class="auth-hint"></p>
+          <button class="primary-button" type="submit" data-i18n="loginStaffButton"></button>
+        </form>
+        <p class="medical-note" data-i18n="loginSafetyNote"></p>
+        <p class="login-copyright">© IT-System Solution • Тимченко Евгений Юрьевич</p>
+      </div>
+    </section>
+
+    <div id="app" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <img src="assets/logo.png" alt="Kazakh Oncology Institute">
+          <div>
+            <h1>KazONCO AI</h1>
+            <p data-i18n="brandSubtitle"></p>
+          </div>
+        </div>
+
+        <nav class="main-nav" aria-label="Sections">
+          <button class="nav-item active" data-view="chat" data-role-view="patient"><span class="icon">C</span><span data-i18n="navChat"></span></button>
+          <button class="nav-item" data-view="patient" data-role-view="patient"><span class="icon">P</span><span data-i18n="navPatient"></span></button>
+          <button class="nav-item" data-view="doctor" data-role-view="staff"><span class="icon">D</span><span data-i18n="navDoctor"></span></button>
+          <button class="nav-item" data-view="consultations" data-role-view="consultations"><span class="icon">AI</span><span data-i18n="navConsultations"></span></button>
+          <button class="nav-item" data-view="admin" data-role-view="admin"><span class="icon">A</span><span data-i18n="navAdmin"></span></button>
+          <button class="nav-item" data-view="analytics" data-role-view="admin"><span class="icon">R</span><span data-i18n="navAnalytics"></span></button>
+          <button class="nav-item" data-view="director" data-role-view="director"><span class="icon">M</span><span data-i18n="navDirector"></span></button>
+          <button class="nav-item" data-view="audit" data-role-view="audit"><span class="icon">L</span><span data-i18n="navAudit"></span></button>
+          <button class="nav-item" data-view="system" data-role-view="super"><span class="icon">S</span><span data-i18n="navSystem"></span></button>
+          <button class="nav-item" data-view="safety" data-role-view="all"><span class="icon">!</span><span data-i18n="navSafety"></span></button>
+        </nav>
+
+        <section class="sidebar-panel">
+          <span class="eyebrow" data-i18n="routeTitle"></span>
+          <p data-i18n="routeText"></p>
+        </section>
+        <button id="logout-button" class="secondary-button" data-i18n="logout"></button>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="topbar-title">
+            <img src="assets/logo.png" alt="Kazakh Oncology Institute">
+            <div>
+              <p class="eyebrow" data-i18n="appEyebrow"></p>
+              <h2 id="view-title"></h2>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <div class="language-switch" data-language-switch></div>
+            <div id="current-user-pill" class="status-pill user-pill"></div>
+            <button id="profile-button" class="secondary-button compact" type="button" data-i18n="profileButton"></button>
+            <button id="top-logout-button" class="secondary-button compact" type="button" data-i18n="logout"></button>
+            <div class="status-pill"><span class="dot"></span><span data-i18n="knowledgeOnly"></span></div>
+          </div>
+        </header>
+
+        <section id="chat" class="view active">
+          <div class="patient-notice"><strong data-i18n="mainRuleTitle"></strong> <span data-i18n="mainRuleText"></span></div>
+          <div class="chat-layout">
+            <aside class="chat-list">
+              <button id="new-chat" class="primary-button" data-i18n="newChat"></button>
+              <label class="search-box">
+                <span>⌕</span>
+                <input id="chat-search" type="search" data-i18n-placeholder="searchChats">
+              </label>
+              <div id="conversation-list" class="conversation-list"></div>
+            </aside>
+            <section class="chat-panel">
+              <div id="empty-chat" class="welcome">
+                <img class="answer-logo" src="assets/logo.png" alt="Kazakh Oncology Institute">
+                <h3 data-i18n="welcomeTitle"></h3>
+                <p data-i18n="welcomeText"></p>
+                <p class="medical-note" data-i18n="safetyDisclaimer"></p>
+                <div class="quick-prompts" id="quick-prompts"></div>
+              </div>
+              <div id="messages" class="messages" aria-live="polite"></div>
+              <div id="attachment-preview" class="attachment-preview hidden"></div>
+              <form id="chat-form" class="composer">
+                <label class="attach-button" data-i18n-title="attachDocument">
+                  <span>+</span>
+                  <input id="patient-doc-input" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt,.md">
+                </label>
+                <input id="message-input" autocomplete="off" data-i18n-placeholder="messagePlaceholder">
+                <button class="send-button" type="submit" aria-label="Send">➤</button>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section id="patient" class="view">
+          <div class="dashboard-grid">
+            <section class="panel patient-card-panel">
+              <div class="panel-logo-head">
+                <img src="assets/logo.png" alt="Kazakh Oncology Institute">
+                <div>
+                  <p class="eyebrow" data-i18n="patientCard"></p>
+                  <h3 id="patient-name">-</h3>
+                </div>
+              </div>
+              <div id="patient-card" class="details-list"></div>
+            </section>
+            <section class="panel medical-profile-panel">
+              <div class="panel-head"><h3 data-i18n="medicalProfileTitle"></h3><span class="tag" data-i18n="medicalProfileSubtitle"></span></div>
+              <form id="patient-profile-form" class="profile-form">
+                <label>
+                  <span data-i18n="regionLabel"></span>
+                  <select name="region" id="profile-region">
+                    <option value="" data-i18n="selectPlaceholder"></option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="genderLabel"></span>
+                  <select name="gender" id="profile-gender">
+                    <option value="" data-i18n="selectPlaceholder"></option>
+                    <option value="male" data-i18n="genderMale"></option>
+                    <option value="female" data-i18n="genderFemale"></option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="ageLabel"></span>
+                  <input type="number" name="age" id="profile-age" min="0" max="120" inputmode="numeric">
+                </label>
+                <label>
+                  <span data-i18n="diagnosisLabel"></span>
+                  <input type="text" name="diagnosis" id="profile-diagnosis" data-i18n-placeholder="diagnosisPlaceholder">
+                </label>
+                <label>
+                  <span data-i18n="stageLabel"></span>
+                  <select name="stage" id="profile-stage">
+                    <option value="" data-i18n="selectPlaceholder"></option>
+                  </select>
+                </label>
+                <button class="primary-button" type="submit" data-i18n="saveProfileButton"></button>
+              </form>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h3 data-i18n="myDoctor"></h3><span class="tag" data-i18n="observation"></span></div>
+              <div id="my-doctor" class="doctor-note"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h3 data-i18n="myDocuments"></h3><span id="patient-doc-count" class="counter">0</span></div>
+              <div id="patient-documents" class="case-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h3 data-i18n="memos"></h3><span class="tag" data-i18n="fromKnowledge"></span></div>
+              <div id="patient-memos" class="knowledge-list compact"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="doctor" class="view">
+          <div class="doctor-grid">
+            <section class="panel">
+              <div class="panel-logo-head">
+                <img src="assets/logo.png" alt="Kazakh Oncology Institute">
+                <div><p class="eyebrow" data-i18n="doctorCabinet"></p><h3 data-i18n="patientsAndRequests"></h3></div>
+              </div>
+              <label class="search-box wide"><span>⌕</span><input id="doctor-search" type="search" data-i18n-placeholder="doctorSearch"></label>
+              <div id="doctor-patients" class="patient-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h3 data-i18n="selectedPatientHistory"></h3><span id="doctor-alert-count" class="counter danger">0</span></div>
+              <div id="doctor-detail" class="doctor-detail"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="consultations" class="view">
+          <div class="doctor-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h3 data-i18n="aiConsultationsTitle"></h3>
+                <span id="ai-risk-count" class="counter danger">0</span>
+              </div>
+              <label class="search-box wide"><span>⌕</span><input id="ai-consult-search" type="search" data-i18n-placeholder="aiConsultSearch"></label>
+              <label><span data-i18n="filterDate"></span><input id="ai-consult-date" type="date"></label>
+              <div id="ai-consult-list" class="patient-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3 data-i18n="aiConsultHistory"></h3>
+                <button id="export-ai-dialog" class="secondary-button" type="button" data-i18n="exportPdf"></button>
+              </div>
+              <div id="ai-consult-detail" class="doctor-detail"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="admin" class="view">
+          <div class="admin-grid">
+            <section class="panel">
+              <div class="panel-logo-head">
+                <img src="assets/logo.png" alt="Kazakh Oncology Institute">
+                <div><p class="eyebrow" data-i18n="adminPanel"></p><h3 data-i18n="knowledgeManagement"></h3></div>
+              </div>
+              <button id="export-kb-admin" class="secondary-button admin-export" type="button" data-i18n="exportKnowledgeBase"></button>
+              <label class="search-box wide"><span>⌕</span><input id="kb-search" type="search" data-i18n-placeholder="kbSearch"></label>
+              <div id="knowledge-list" class="knowledge-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h3 id="knowledge-form-title" data-i18n="addMaterial"></h3><span class="tag" data-i18n="moderation"></span></div>
+              <form id="knowledge-form" class="knowledge-form">
+                <input name="editId" type="hidden">
+                <label><span data-i18n="materialTitle"></span><input name="title" required data-i18n-placeholder="materialTitlePlaceholder"></label>
+                <label><span data-i18n="category"></span><select name="category" id="kb-category-select"></select></label>
+                <label><span data-i18n="materialStatus"></span><select name="status" id="kb-status-select"></select></label>
+                <label><span data-i18n="source"></span><input name="source" required data-i18n-placeholder="sourcePlaceholder"></label>
+                <label><span data-i18n="link"></span><input name="url" data-i18n-placeholder="linkPlaceholder"></label>
+                <label><span data-i18n="file"></span><input name="file" type="file" accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx"></label>
+                <label><span data-i18n="content"></span><textarea name="content" required rows="7" data-i18n-placeholder="contentPlaceholder"></textarea></label>
+                <div class="form-actions">
+                  <button id="save-knowledge-button" class="primary-button" type="submit" data-i18n="saveMaterial"></button>
+                  <button id="cancel-edit-button" class="secondary-button hidden" type="button" data-i18n="cancelEdit"></button>
+                </div>
+              </form>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h3 data-i18n="chatGptModuleTitle"></h3><span class="tag">GPT</span></div>
+              <p data-i18n="chatGptModuleText"></p>
+              <label class="toggle-row">
+                <input id="chatgpt-toggle" type="checkbox">
+                <span data-i18n="chatGptToggle"></span>
+              </label>
+              <input id="chatgpt-api-placeholder" disabled data-i18n-placeholder="chatGptApiPlaceholder">
+            </section>
+          </div>
+        </section>
+
+        <section id="analytics" class="view">
+          <div class="metrics-grid">
+            <div class="metric"><span id="metric-patients">0</span><p data-i18n="metricPatients"></p></div>
+            <div class="metric"><span id="metric-chats">0</span><p data-i18n="metricRequests"></p></div>
+            <div class="metric"><span id="metric-ai">0</span><p data-i18n="metricAiAnswers"></p></div>
+            <div class="metric danger"><span id="metric-red">0</span><p data-i18n="metricRedFlags"></p></div>
+            <div class="metric"><span id="metric-escalations">0</span><p data-i18n="metricEscalations"></p></div>
+            <div class="metric"><span id="metric-kb">0</span><p data-i18n="metricKnowledge"></p></div>
+          </div>
+          <div class="analytics-grid">
+            <section class="panel">
+              <div class="panel-head"><h3 data-i18n="requestTopics"></h3><button id="export-excel" class="secondary-button" data-i18n="exportExcel"></button></div>
+              <div id="category-bars" class="bar-list"></div>
+            </section>
+            <section class="panel report-panel">
+              <div class="report-logo">
+                <img src="assets/logo.png" alt="Kazakh Oncology Institute">
+                <div><p class="eyebrow" data-i18n="managerReport"></p><h3 data-i18n="reportTitle"></h3></div>
+              </div>
+              <button id="print-report" class="secondary-button" data-i18n="exportPdf"></button>
+              <div id="report" class="report"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="audit" class="view">
+          <div class="audit-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h3 data-i18n="auditLogTitle"></h3>
+                <span id="audit-count" class="counter">0</span>
+              </div>
+              <div id="audit-list" class="audit-list"></div>
+            </section>
+            <section class="panel">
+              <h3 data-i18n="auditRulesTitle"></h3>
+              <ul class="clean-list">
+                <li data-i18n="auditRuleUser"></li>
+                <li data-i18n="auditRuleDate"></li>
+                <li data-i18n="auditRuleMaterial"></li>
+                <li data-i18n="auditRuleType"></li>
+              </ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="director" class="view">
+          <div class="director-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h3 data-i18n="directorPanelTitle"></h3>
+                <span class="tag" data-i18n="directorMode"></span>
+              </div>
+              <div id="director-summary" class="metrics-grid compact-metrics"></div>
+              <div id="director-patients" class="case-list"></div>
+            </section>
+            <section class="panel">
+              <h3 data-i18n="allPatientDocuments"></h3>
+              <div id="director-documents" class="case-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="system" class="view">
+          <div class="system-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h3 data-i18n="systemPanelTitle"></h3>
+                <span class="tag" data-i18n="superAdminLogin"></span>
+              </div>
+              <div class="system-actions">
+                <button class="primary-button" data-system-action="backup" data-i18n="backupDatabase"></button>
+                <button class="secondary-button" data-system-action="exportKnowledge" data-i18n="exportKnowledgeBase"></button>
+              </div>
+              <form id="user-form" class="knowledge-form user-form">
+                <input name="editLogin" type="hidden">
+                <label><span data-i18n="employeeFullNameLabel"></span><input name="fullName" required data-i18n-placeholder="employeeFullNamePlaceholder"></label>
+                <label><span data-i18n="loginLabel"></span><input name="login" required data-i18n-placeholder="loginPlaceholder"></label>
+                <label><span data-i18n="passwordLabel"></span><input name="password" type="password" data-i18n-placeholder="newPasswordPlaceholder"></label>
+                <label><span data-i18n="roleLabel"></span><select name="role" id="user-role-select"></select></label>
+                <label class="toggle-row"><input name="blocked" type="checkbox"><span data-i18n="blockedUser"></span></label>
+                <div class="form-actions">
+                  <button id="save-user-button" class="primary-button" type="submit" data-i18n="saveUser"></button>
+                  <button id="cancel-user-edit-button" class="secondary-button hidden" type="button" data-i18n="cancelEdit"></button>
+                </div>
+              </form>
+              <div id="system-users" class="case-list"></div>
+              <h3 data-i18n="loginJournalTitle"></h3>
+              <div id="login-journal" class="case-list compact-list"></div>
+            </section>
+            <section class="panel">
+              <h3 data-i18n="securityChecklist"></h3>
+              <ul class="clean-list">
+                <li data-i18n="securityPasswordAuth"></li>
+                <li data-i18n="securityPasswordHash"></li>
+                <li data-i18n="securityAudit"></li>
+                <li data-i18n="securityTwoFactor"></li>
+                <li data-i18n="securityAutoLogout"></li>
+                <li data-i18n="securityBackup"></li>
+              </ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="safety" class="view">
+          <div class="safety-grid">
+            <section class="panel accent-panel">
+              <h3 data-i18n="safetyMainRule"></h3>
+              <p data-i18n="safetyRuleText"></p>
+              <p data-i18n="noInfoRuleText"></p>
+            </section>
+            <section class="panel">
+              <h3 data-i18n="accessRoles"></h3>
+              <ul id="roles-list" class="clean-list"></ul>
+            </section>
+          </div>
+        </section>
+      </main>
+      <footer class="app-footer">© IT-System Solution • Тимченко Евгений Юрьевич</footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
