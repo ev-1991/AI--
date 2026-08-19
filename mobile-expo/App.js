@@ -453,10 +453,6 @@ export default function App() {
   const renderChat = () => {
     return (
       <View style={styles.flex}>
-        <View style={styles.assistantBanner}>
-          <Text style={styles.titleSmall}>AI-помощник пациента · вопрос — ответ</Text>
-          <Text style={styles.muted}>Задайте вопрос или опишите новый симптом. При опасных признаках обращение будет отмечено для срочной связи с врачом.</Text>
-        </View>
         <ScrollView style={styles.chat} contentContainerStyle={styles.chatContent}>
           {activePatient.messages.map((message) => <MessageBubble key={message.id} message={message} onOpenFile={openFile} />)}
         </ScrollView>
@@ -469,10 +465,20 @@ export default function App() {
           ))}
         </ScrollView>
         <View style={styles.composer}>
-          <TouchableOpacity style={styles.iconButton} onPress={pickPhoto}><Text style={styles.iconText}>Фото</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={pickDocument}><Text style={styles.iconText}>Файл</Text></TouchableOpacity>
-          <TextInput style={styles.messageInput} placeholder="Введите сообщение..." value={messageText} onChangeText={setMessageText} />
+          <TouchableOpacity style={styles.attachCircle} onPress={pickDocument}><Text style={styles.attachCircleText}>＋</Text></TouchableOpacity>
+          <TextInput style={styles.messageInput} placeholder="Напишите сообщение..." value={messageText} onChangeText={setMessageText} />
           <TouchableOpacity style={styles.sendButton} onPress={sendPatientQuestion}><Text style={styles.sendText}>➤</Text></TouchableOpacity>
+        </View>
+        <Text style={styles.patientSafetyNote}>AI-помощник отвечает по проверенным материалам, не ставит диагноз и не меняет назначения врача. При опасных симптомах обратитесь за медицинской помощью.</Text>
+        <View style={styles.patientBottomActions}>
+          <TouchableOpacity style={styles.routeAction} onPress={() => setActiveTab("nav")}>
+            <Text style={styles.routeActionIcon}>⌘</Text>
+            <View><Text style={styles.routeActionTitle}>Маршрут</Text><Text style={styles.routeActionHint}>Весь путь пациента</Text></View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.exitAction} onPress={logout}>
+            <Text style={styles.exitActionIcon}>↪</Text>
+            <View><Text style={styles.exitActionTitle}>Выйти</Text><Text style={styles.routeActionHint}>Завершить сеанс</Text></View>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -624,11 +630,20 @@ export default function App() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.logo}>KazONCO AI</Text>
-          <Text style={styles.muted}>{isStaff ? `${staff.fullName} · ${roles[staff.role]}` : activePatient.fullName}</Text>
+        <View style={styles.mobileHeaderLeft}>
+          <Text style={styles.mobileMenuIcon}>☰</Text>
+          <View>
+            <Text style={styles.logo}>KazONCO AI</Text>
+            <Text style={styles.headerStatus}>● {isStaff ? `${staff.fullName} · ${roles[staff.role]}` : "AI-помощник КазНИИОиР"}</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}><Text style={styles.secondaryText}>Выйти</Text></TouchableOpacity>
+        <View style={styles.headerActions}>
+          <View style={styles.languageBadge}><Text style={styles.languageBadgeText}>RU</Text></View>
+          <TouchableOpacity style={styles.avatarButton} onPress={() => isPatient ? setActiveTab("appeals") : null}>
+            <Text style={styles.avatarText}>{(isStaff ? staff.fullName : activePatient.fullName).trim().charAt(0).toUpperCase() || "П"}</Text>
+            <View style={styles.avatarOnline} />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.tabs}>
         {(isStaff ? staffTabs : patientTabs).map(([key, label]) => (
@@ -665,8 +680,17 @@ const styles = StyleSheet.create({
   quickQuestions: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   quickQuestion: { maxWidth: 240, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 18, backgroundColor: "white", borderWidth: 1, borderColor: "#b9dce8" },
   quickQuestionText: { color: "#0f6c8f", fontWeight: "700", fontSize: 13 },
-  header: { padding: 14, borderBottomWidth: 1, borderBottomColor: "#d8e3e7", backgroundColor: "white", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  logo: { color: "#073c5b", fontSize: 22, fontWeight: "900" },
+  header: { minHeight: 68, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#d8e3e7", backgroundColor: "white", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  mobileHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 9, flex: 1 },
+  mobileMenuIcon: { color: "#073c5b", fontSize: 24, fontWeight: "800" },
+  headerStatus: { color: "#64727d", fontSize: 11, marginTop: 2 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 7 },
+  languageBadge: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center", backgroundColor: "white" },
+  languageBadgeText: { color: "#073c5b", fontSize: 10, fontWeight: "900" },
+  avatarButton: { position: "relative", width: 40, height: 40, borderRadius: 20, backgroundColor: "#0f6c8f", alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "white", fontSize: 17, fontWeight: "900" },
+  avatarOnline: { position: "absolute", right: 0, bottom: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: "#28b36b", borderWidth: 2, borderColor: "white" },
+  logo: { color: "#073c5b", fontSize: 23, fontWeight: "900" },
   title: { fontSize: 24, color: "#1e2933", fontWeight: "800" },
   titleSmall: { fontSize: 17, color: "#1e2933", fontWeight: "800" },
   sectionTitle: { marginVertical: 8, color: "#073c5b", fontSize: 18, fontWeight: "900" },
@@ -681,24 +705,35 @@ const styles = StyleSheet.create({
   secondaryButton: { minHeight: 42, borderRadius: 8, borderWidth: 1, borderColor: "#0f6c8f", alignItems: "center", justifyContent: "center", paddingHorizontal: 14 },
   secondaryText: { color: "#0f6c8f", fontWeight: "800" },
   logoutButton: { minHeight: 36, borderRadius: 8, borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
-  tabs: { flexDirection: "row", gap: 8, padding: 10, backgroundColor: "#eef4f6" },
-  tab: { minHeight: 36, paddingHorizontal: 12, borderRadius: 999, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  tabActive: { backgroundColor: "#197545" },
-  tabText: { color: "#64727d", fontWeight: "800", fontSize: 12 },
-  tabTextActive: { color: "white" },
+  tabs: { flexDirection: "row", gap: 7, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "white", borderBottomWidth: 1, borderBottomColor: "#edf2f5" },
+  tab: { flex: 1, minHeight: 44, paddingHorizontal: 9, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1, borderColor: "#d8e3e7", alignItems: "center", justifyContent: "center" },
+  tabActive: { backgroundColor: "#e8f6fd", borderColor: "#b7dff2" },
+  tabText: { color: "#64727d", fontWeight: "800", fontSize: 11 },
+  tabTextActive: { color: "#075fa9" },
   content: { padding: 14, paddingBottom: 90 },
   chat: { flex: 1 },
-  chatContent: { padding: 14, gap: 10, paddingBottom: 20 },
-  message: { padding: 12, borderRadius: 8, maxWidth: "90%", gap: 5 },
-  patientMessage: { alignSelf: "flex-end", backgroundColor: "#0f6c8f" },
+  chatContent: { padding: 13, gap: 10, paddingBottom: 14 },
+  message: { padding: 12, borderRadius: 16, maxWidth: "88%", gap: 5 },
+  patientMessage: { alignSelf: "flex-end", backgroundColor: "#eef7ff", borderWidth: 1, borderColor: "#7eb6ee" },
   aiMessage: { alignSelf: "flex-start", backgroundColor: "white", borderWidth: 1, borderColor: "#d8e3e7" },
   staffMessage: { alignSelf: "flex-start", backgroundColor: "#eef8fb", borderWidth: 1, borderColor: "#b7d9e6" },
   sender: { color: "#073c5b", fontWeight: "900" },
   senderRole: { color: "#64727d", fontSize: 12, fontWeight: "700" },
-  patientText: { color: "white", lineHeight: 21 },
-  patientSubtext: { color: "#dceff5" },
+  patientText: { color: "#1e2933", lineHeight: 21 },
+  patientSubtext: { color: "#64727d" },
   readStatus: { marginTop: 4, color: "#64727d", fontSize: 12 },
-  composer: { flexDirection: "row", gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: "#d8e3e7", backgroundColor: "white", alignItems: "center" },
+  composer: { flexDirection: "row", gap: 7, marginHorizontal: 10, marginVertical: 7, padding: 7, borderWidth: 1, borderColor: "#dce5eb", borderRadius: 16, backgroundColor: "white", alignItems: "center" },
+  attachCircle: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#eef4f7" },
+  attachCircleText: { color: "#073c5b", fontSize: 22, fontWeight: "700" },
+  patientSafetyNote: { paddingHorizontal: 18, paddingVertical: 7, color: "#667788", fontSize: 10, lineHeight: 15, textAlign: "center", backgroundColor: "white" },
+  patientBottomActions: { flexDirection: "row", gap: 8, paddingHorizontal: 10, paddingBottom: 10, backgroundColor: "white" },
+  routeAction: { flex: 1, minHeight: 54, paddingHorizontal: 10, borderWidth: 1, borderColor: "#dce5eb", borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "white" },
+  exitAction: { flex: 1, minHeight: 54, paddingHorizontal: 10, borderWidth: 1, borderColor: "#dce5eb", borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "white" },
+  routeActionIcon: { color: "#075fa9", fontSize: 22, fontWeight: "900" },
+  exitActionIcon: { color: "#d52222", fontSize: 22, fontWeight: "900" },
+  routeActionTitle: { color: "#075fa9", fontSize: 13, fontWeight: "900" },
+  exitActionTitle: { color: "#d52222", fontSize: 13, fontWeight: "900" },
+  routeActionHint: { color: "#75828d", fontSize: 9, marginTop: 2 },
   staffComposer: { gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: "#d8e3e7", backgroundColor: "white" },
   staffReply: { minHeight: 72, borderWidth: 1, borderColor: "#d8e3e7", borderRadius: 8, padding: 10, textAlignVertical: "top" },
   iconButton: { minHeight: 40, borderRadius: 8, backgroundColor: "#dceff5", justifyContent: "center", paddingHorizontal: 10 },
