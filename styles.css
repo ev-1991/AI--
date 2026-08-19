@@ -1092,6 +1092,13 @@ textarea {
   color: var(--muted);
 }
 
+/* Mobile patient shell is rendered only on narrow screens. */
+.mobile-appbar,
+.mobile-chat-tools,
+.mobile-route-panel {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .metrics-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1121,53 +1128,521 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  html,
+  body {
+    height: 100%;
+    background: #ffffff;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    background: #ffffff;
   }
 
-  .sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    gap: 12px;
-    border-right: 0;
+  .sidebar,
+  .topbar,
+  .app-footer {
+    display: none;
+  }
+
+  .mobile-appbar {
+    position: relative;
+    z-index: 20;
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
     border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 8px 22px rgba(7, 60, 91, 0.05);
   }
 
-  .main-nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .mobile-appbar-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 66px;
+    padding: 8px 12px 6px;
   }
 
-  .nav-item {
+  .mobile-icon-button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--brand);
+    font-size: 23px;
+    font-weight: 850;
+  }
+
+  .mobile-icon-button:active {
+    background: var(--brand-soft);
+  }
+
+  .mobile-language-button {
+    width: 42px;
+    border: 1px solid var(--line);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .mobile-brand-copy {
+    min-width: 0;
+    line-height: 1.15;
+  }
+
+  .mobile-brand-copy > strong {
+    display: block;
+    overflow: hidden;
+    color: #0a4a70;
+    font-size: clamp(20px, 6vw, 27px);
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-brand-copy > span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 4px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-online-dot,
+  .mobile-avatar-dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #28b36b;
+  }
+
+  .mobile-appbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .mobile-avatar-wrap {
+    position: relative;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+  }
+
+  .mobile-avatar {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #0f6c8f, #1468ba);
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 850;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mobile-avatar-dot {
+    position: absolute;
+    right: 0;
+    bottom: 1px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ffffff;
+  }
+
+  .mobile-main-nav.main-nav {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding: 5px 10px 10px;
+    scrollbar-width: none;
+  }
+
+  .mobile-main-nav.main-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-main-nav .nav-item {
+    flex: 1 0 30%;
     justify-content: center;
-    padding: 0 8px;
+    gap: 7px;
+    min-width: 96px;
+    min-height: 46px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #ffffff;
+    color: #536372;
     font-size: 13px;
+    white-space: nowrap;
   }
 
-  .topbar {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 14px;
+  .mobile-main-nav .nav-item.active {
+    border-color: #b7dff2;
+    background: #e8f6fd;
+    color: #075fa9;
+  }
+
+  .mobile-main-nav .nav-item .icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: transparent;
+    color: currentColor;
+    font-size: 11px;
+  }
+
+  .workspace {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-rows: minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #ffffff;
   }
 
   .view {
     padding: 12px;
+    overflow: auto;
+  }
+
+  #chat.view.active {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #fbfdff;
+  }
+
+  #chat .chat-layout {
+    order: 1;
+  }
+
+  #chat .patient-notice {
+    order: 2;
+  }
+
+  #chat .mobile-chat-tools {
+    order: 3;
+  }
+
+  #chat .mobile-route-panel {
+    order: 4;
+  }
+
+  .patient-notice {
+    margin: 0;
+    padding: 8px 18px 9px;
+    border: 0;
+    border-top: 1px solid #edf2f5;
+    border-left: 0;
+    border-radius: 0;
+    background: #ffffff;
+    color: #667788;
+    font-size: 11px;
+    line-height: 1.38;
+    text-align: center;
+  }
+
+  .patient-notice strong {
+    color: #4b5b69;
+  }
+
+  .chat-layout {
+    position: relative;
+    display: block;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+    background: #fbfdff;
+    box-shadow: none;
+  }
+
+  .chat-panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  }
+
+  .chat-list {
+    display: none;
+  }
+
+  .chat-list.mobile-open {
+    position: fixed;
+    z-index: 50;
+    top: 126px;
+    bottom: 12px;
+    left: 10px;
+    display: grid;
+    width: min(88vw, 340px);
+    max-height: calc(100dvh - 138px);
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(249, 251, 252, 0.99);
+    box-shadow: 0 20px 55px rgba(7, 60, 91, 0.22);
+  }
+
+  .messages {
+    gap: 10px;
+    min-height: 0;
+    padding: 16px 13px 10px;
+    scroll-padding-bottom: 18px;
+    background: transparent;
+  }
+
+  .message {
+    max-width: 88%;
+    padding: 12px 13px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.48;
+  }
+
+  .message.patient {
+    border: 1px solid #7eb6ee;
+    background: #eef7ff;
+    color: #1e2933;
+    box-shadow: 0 4px 14px rgba(47, 127, 201, 0.07);
+  }
+
+  .message.assistant,
+  .message.staff {
+    border-color: #dde6eb;
+    background: #ffffff;
+    box-shadow: 0 5px 16px rgba(18, 57, 82, 0.06);
+  }
+
+  .message-sender {
+    margin-bottom: 5px;
+  }
+
+  .message-sender strong {
+    color: #0a4a70;
+    font-size: 12px;
+  }
+
+  .message-sender span {
+    display: none;
+  }
+
+  .message-logo {
+    width: 92px;
+    height: 28px;
+    margin-bottom: 7px;
+  }
+
+  .message-meta {
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .message-meta span {
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+    color: #7c8995;
+    font-size: 10px;
+    font-weight: 650;
+  }
+
+  .message.assistant .message-meta span:not(:first-child) {
+    display: none;
+  }
+
+  .rating-row {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .rating-row .small-action {
+    min-height: 30px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: #ffffff;
+    font-size: 11px;
+  }
+
+  .welcome {
+    gap: 10px;
+    padding: 20px 16px;
+  }
+
+  .welcome .answer-logo {
+    width: 118px;
+    height: 44px;
+  }
+
+  .welcome h3 {
+    font-size: 20px;
+  }
+
+  .welcome p {
+    font-size: 13px;
+  }
+
+  .quick-prompts {
+    gap: 7px;
+    margin-top: 4px;
+  }
+
+  .prompt-chip {
+    min-height: 32px;
+    padding: 0 11px;
+    font-size: 11px;
+  }
+
+  .composer {
+    grid-template-columns: 38px minmax(0, 1fr) 40px;
+    gap: 7px;
+    margin: 7px 10px 8px;
+    padding: 7px;
+    border: 1px solid #dce5eb;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 8px 22px rgba(22, 64, 92, 0.09);
+  }
+
+  .composer input {
+    min-height: 40px;
+    padding: 7px 8px;
+    border: 0;
+    background: transparent;
+  }
+
+  .attach-button,
+  .send-button {
+    border-radius: 12px;
+  }
+
+  .attachment-preview {
+    margin: 0 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  .mobile-chat-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 10px 10px;
+    background: #ffffff;
+  }
+
+  .mobile-tool-button {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 7px 10px;
+    border: 1px solid #dce5eb;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #0d4f7d;
+    text-align: left;
+  }
+
+  .mobile-tool-button.logout {
+    color: #c92626;
+  }
+
+  .mobile-tool-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border-radius: 10px;
+    background: #edf6fb;
+    font-size: 19px;
+    font-weight: 900;
+  }
+
+  .mobile-tool-button.logout .mobile-tool-icon {
+    background: #fff0f0;
+  }
+
+  .mobile-tool-button strong,
+  .mobile-tool-button small {
+    display: block;
+  }
+
+  .mobile-tool-button strong {
+    font-size: 13px;
+  }
+
+  .mobile-tool-button small {
+    margin-top: 2px;
+    overflow: hidden;
+    color: #76838e;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-route-panel {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 10px 10px;
+    padding: 11px 12px;
+    border: 1px solid #cfe2eb;
+    border-radius: 14px;
+    background: #f5fbfe;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .mobile-route-panel p {
+    margin: 5px 0 0;
+  }
+
+  .mobile-route-panel .secondary-button {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 10px;
+    font-size: 20px;
   }
 
   .metrics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .kb-card {
-    grid-template-columns: 1fr;
-  }
-
+  .kb-card,
   .bar-row {
     grid-template-columns: 1fr;
-  }
-
-  .message {
-    max-width: 100%;
   }
 }
 

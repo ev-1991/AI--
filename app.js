@@ -34,6 +34,8 @@ const tr = {
     navSafety: "Безопасность",
     routeTitle: "Маршрут",
     routeText: "Пациент → Чат → AI-агент → База знаний КазНИИОиР → Ответ пациенту / Передача врачу → Аналитика.",
+    routeMobileHint: "Путь пациента",
+    logoutMobileHint: "Завершить сеанс",
     logout: "Выйти",
     knowledgeOnly: "Только база знаний",
     mainRuleTitle: "Главное правило:",
@@ -170,6 +172,8 @@ const tr = {
     navSafety: "Қауіпсіздік",
     routeTitle: "Маршрут",
     routeText: "Пациент → Чат → AI-агент → ҚазҰОжРИ білім базасы → Пациентке жауап / Дәрігерге беру → Аналитика.",
+    routeMobileHint: "Пациент жолы",
+    logoutMobileHint: "Сеансты аяқтау",
     logout: "Шығу",
     knowledgeOnly: "Тек білім базасы",
     mainRuleTitle: "Негізгі ереже:",
@@ -305,7 +309,9 @@ const tr = {
     navAnalytics: "Reports",
     navSafety: "Safety",
     routeTitle: "Workflow",
-    routeText: "Patient в†’ Chat в†’ AI agent в†’ KazNIIOiR knowledge base в†’ Patient answer / Doctor handoff в†’ Analytics.",
+    routeText: "Patient → Chat → AI agent → KazNIIOiR knowledge base → Patient answer / Doctor handoff → Analytics.",
+    routeMobileHint: "Patient journey",
+    logoutMobileHint: "End session",
     logout: "Logout",
     knowledgeOnly: "Knowledge base only",
     mainRuleTitle: "Main rule:",
@@ -1682,6 +1688,7 @@ function setLanguage(lang) {
 function setActiveView(view) {
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
   document.querySelectorAll(".view").forEach((item) => item.classList.toggle("active", item.id === view));
+  closeMobilePanels();
   renderViewTitle();
 }
 
@@ -1731,6 +1738,17 @@ function renderSession() {
   byId("current-user-pill").innerHTML = staff
     ? `<strong>${escapeHtml(staff.fullName)}</strong><span>${t("roleLabel")}: ${roleName(staff.role)} · ${t("loginLabel")}: ${escapeHtml(staff.login)}</span>`
     : escapeHtml(currentUserLabel());
+
+  const mobileAvatar = byId("mobile-user-avatar");
+  const mobileLanguage = byId("mobile-language-button");
+  const mobileHistory = byId("mobile-history-button");
+  if (mobileAvatar) {
+    const label = currentUserLabel().trim();
+    mobileAvatar.textContent = (label[0] || "П").toUpperCase();
+    mobileAvatar.title = label;
+  }
+  if (mobileLanguage) mobileLanguage.textContent = currentLang.toUpperCase();
+  if (mobileHistory) mobileHistory.classList.toggle("hidden", currentMode !== "patient");
 }
 
 function findOrCreatePatient(fullName, iin) {
@@ -2644,6 +2662,17 @@ function render() {
   saveState();
 }
 
+function closeMobilePanels() {
+  const chatList = document.querySelector(".chat-list");
+  const historyButton = byId("mobile-history-button");
+  const routePanel = byId("mobile-route-panel");
+  const routeButton = byId("mobile-route-button");
+  chatList?.classList.remove("mobile-open");
+  historyButton?.setAttribute("aria-expanded", "false");
+  routePanel?.classList.add("hidden");
+  routeButton?.setAttribute("aria-expanded", "false");
+}
+
 function init() {
   document.addEventListener("click", (event) => {
     const langButton = event.target.closest("[data-lang]");
@@ -2705,6 +2734,32 @@ function init() {
     render();
   });
   byId("top-logout-button").addEventListener("click", () => byId("logout-button").click());
+  byId("mobile-logout-button")?.addEventListener("click", () => byId("logout-button").click());
+  byId("mobile-language-button")?.addEventListener("click", () => {
+    const nextIndex = (languages.indexOf(currentLang) + 1) % languages.length;
+    setLanguage(languages[nextIndex]);
+  });
+  byId("mobile-history-button")?.addEventListener("click", () => {
+    const chatList = document.querySelector(".chat-list");
+    if (!chatList) return;
+    const open = chatList.classList.toggle("mobile-open");
+    byId("mobile-history-button").setAttribute("aria-expanded", String(open));
+  });
+  byId("mobile-route-button")?.addEventListener("click", () => {
+    const panel = byId("mobile-route-panel");
+    if (!panel) return;
+    const open = panel.classList.contains("hidden");
+    panel.classList.toggle("hidden", !open);
+    byId("mobile-route-button").setAttribute("aria-expanded", String(open));
+  });
+  byId("mobile-route-close")?.addEventListener("click", () => {
+    byId("mobile-route-panel")?.classList.add("hidden");
+    byId("mobile-route-button")?.setAttribute("aria-expanded", "false");
+  });
+  byId("mobile-user-avatar")?.addEventListener("click", () => {
+    if (currentMode === "patient") setActiveView("patient");
+    else byId("profile-button")?.click();
+  });
   byId("profile-button").addEventListener("click", () => {
     const staff = currentStaffUser();
     if (!staff) return;
@@ -2729,7 +2784,7 @@ function init() {
     const button = event.target.closest("button");
     if (button) sendMessage(button.textContent);
   });
-  byId("new-chat").addEventListener("click", () => { createConversation(); render(); });
+  byId("new-chat").addEventListener("click", () => { createConversation(); closeMobilePanels(); render(); });
   byId("chat-search").addEventListener("input", renderConversations);
   byId("doctor-search").addEventListener("input", renderDoctorCabinet);
   byId("kb-search").addEventListener("input", renderKnowledge);
@@ -2747,6 +2802,7 @@ function init() {
     const button = event.target.closest("[data-conversation-id]");
     if (!button) return;
     activeConversationId = button.dataset.conversationId;
+    closeMobilePanels();
     render();
   });
   byId("messages").addEventListener("click", (event) => {

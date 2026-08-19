@@ -58,6 +58,36 @@
     </section>
 
     <div id="app" class="app-shell hidden">
+      <header class="mobile-appbar" aria-label="Мобильная навигация">
+        <div class="mobile-appbar-row">
+          <button id="mobile-history-button" class="mobile-icon-button" type="button" aria-label="История чатов" aria-expanded="false">☰</button>
+          <div class="mobile-brand-copy">
+            <strong>KazONCO AI</strong>
+            <span><i class="mobile-online-dot"></i><span data-i18n="appEyebrow"></span></span>
+          </div>
+          <div class="mobile-appbar-actions">
+            <button id="mobile-language-button" class="mobile-icon-button mobile-language-button" type="button" aria-label="Сменить язык">RU</button>
+            <div class="mobile-avatar-wrap" title="Профиль">
+              <span id="mobile-user-avatar" class="mobile-avatar">П</span>
+              <i class="mobile-avatar-dot"></i>
+            </div>
+          </div>
+        </div>
+
+        <nav class="mobile-main-nav main-nav" aria-label="Основные разделы">
+          <button class="nav-item active" data-view="chat" data-role-view="patient"><span class="icon">C</span><span data-i18n="navChat"></span></button>
+          <button class="nav-item" data-view="patient" data-role-view="patient"><span class="icon">P</span><span data-i18n="navPatient"></span></button>
+          <button class="nav-item" data-view="doctor" data-role-view="staff"><span class="icon">D</span><span data-i18n="navDoctor"></span></button>
+          <button class="nav-item" data-view="consultations" data-role-view="consultations"><span class="icon">AI</span><span data-i18n="navConsultations"></span></button>
+          <button class="nav-item" data-view="admin" data-role-view="admin"><span class="icon">A</span><span data-i18n="navAdmin"></span></button>
+          <button class="nav-item" data-view="analytics" data-role-view="admin"><span class="icon">R</span><span data-i18n="navAnalytics"></span></button>
+          <button class="nav-item" data-view="director" data-role-view="director"><span class="icon">M</span><span data-i18n="navDirector"></span></button>
+          <button class="nav-item" data-view="audit" data-role-view="audit"><span class="icon">L</span><span data-i18n="navAudit"></span></button>
+          <button class="nav-item" data-view="system" data-role-view="super"><span class="icon">S</span><span data-i18n="navSystem"></span></button>
+          <button class="nav-item" data-view="safety" data-role-view="all"><span class="icon">!</span><span data-i18n="navSafety"></span></button>
+        </nav>
+      </header>
+
       <aside class="sidebar">
         <div class="brand">
           <img src="assets/logo.png" alt="Kazakh Oncology Institute">
@@ -136,6 +166,23 @@
               </form>
             </section>
           </div>
+          <div class="mobile-chat-tools">
+            <button id="mobile-route-button" class="mobile-tool-button route" type="button" aria-expanded="false">
+              <span class="mobile-tool-icon">⌘</span>
+              <span><strong data-i18n="routeTitle"></strong><small data-i18n="routeMobileHint">Путь пациента</small></span>
+            </button>
+            <button id="mobile-logout-button" class="mobile-tool-button logout" type="button">
+              <span class="mobile-tool-icon">↪</span>
+              <span><strong data-i18n="logout"></strong><small data-i18n="logoutMobileHint">Завершить сеанс</small></span>
+            </button>
+          </div>
+          <section id="mobile-route-panel" class="mobile-route-panel hidden" aria-live="polite">
+            <div>
+              <span class="eyebrow" data-i18n="routeTitle"></span>
+              <p data-i18n="routeText"></p>
+            </div>
+            <button id="mobile-route-close" class="secondary-button compact" type="button" aria-label="Закрыть">×</button>
+          </section>
         </section>
 
         <section id="patient" class="view">
