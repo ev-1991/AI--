@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "KazONCO AI",
+    "slug": "kazonco-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "kazoncoai",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "kz.kaznior.kazoncoai",
+      "versionCode": 1,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "POST_NOTIFICATIONS"
+      ]
+    }
+  }
+}
