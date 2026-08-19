@@ -802,6 +802,41 @@ Object.assign(tr.ru, {
   ]
 });
 
+
+Object.assign(tr.ru, {
+  safetyShort: "AI не ставит диагноз и не заменяет врача",
+  offlineMessage: "Нет соединения. Проверьте интернет — введённый текст сохранён.",
+  aiSearching: "Поиск в базе знаний…",
+  knowledgeVerified: "Ответ по базе знаний КазНИИОиР",
+  showSource: "Источник",
+  patientProfileLabel: "Профиль пациента",
+  confirmLogoutTitle: "Выйти из аккаунта?",
+  confirmLogoutText: "Текущий сеанс будет завершён.",
+  newMessageBelow: "Новое сообщение"
+});
+Object.assign(tr.kz, {
+  safetyShort: "AI диагноз қоймайды және дәрігерді алмастырмайды",
+  offlineMessage: "Интернет байланысы жоқ. Енгізілген мәтін сақталады.",
+  aiSearching: "Білім базасынан іздеу…",
+  knowledgeVerified: "ҚазҰОжРИ білім базасына негізделген жауап",
+  showSource: "Дереккөз",
+  patientProfileLabel: "Пациент профилі",
+  confirmLogoutTitle: "Аккаунттан шығу керек пе?",
+  confirmLogoutText: "Ағымдағы сеанс аяқталады.",
+  newMessageBelow: "Жаңа хабарлама"
+});
+Object.assign(tr.en, {
+  safetyShort: "AI does not diagnose or replace a doctor",
+  offlineMessage: "No connection. Check the internet — your typed text is preserved.",
+  aiSearching: "Searching the knowledge base…",
+  knowledgeVerified: "Answer based on the KazNIIOiR knowledge base",
+  showSource: "Source",
+  patientProfileLabel: "Patient profile",
+  confirmLogoutTitle: "Sign out?",
+  confirmLogoutText: "The current session will end.",
+  newMessageBelow: "New message"
+});
+
 // Списки для анкеты медицинского профиля пациента
 const kazakhstanRegions = [
   "г. Алматы", "г. Астана", "г. Шымкент", "Алматинская область", "Абайская область",
@@ -1747,8 +1782,15 @@ function renderSession() {
     mobileAvatar.textContent = (label[0] || "П").toUpperCase();
     mobileAvatar.title = label;
   }
-  if (mobileLanguage) mobileLanguage.textContent = currentLang.toUpperCase();
+  if (mobileLanguage) {
+    mobileLanguage.textContent = "🌐";
+    mobileLanguage.title = currentLang.toUpperCase();
+  }
   if (mobileHistory) mobileHistory.classList.toggle("hidden", currentMode !== "patient");
+  const profileName = byId("mobile-profile-name");
+  const profileRole = byId("mobile-profile-role");
+  if (profileName) profileName.textContent = currentUserLabel();
+  if (profileRole) profileRole.textContent = currentMode === "patient" ? t("patientProfileLabel") : (staff ? roleName(staff.role) : t("profileButton"));
 }
 
 function findOrCreatePatient(fullName, iin) {
@@ -2079,13 +2121,15 @@ function renderMessages() {
     const sender = `<div class="message-sender"><strong>${escapeHtml(message.senderName || (message.role === "patient" ? currentPatient()?.fullName : "KazONCO AI"))}</strong><span>${message.role === "staff" ? roleName(message.senderRole) : escapeHtml(message.senderRole || message.role)}</span></div>`;
     const warning = message.role === "assistant" && message.escalated ? `<div class="transfer-warning">${t("transferredWarning")}</div>` : "";
     const meta = message.role === "assistant"
-      ? `<div class="message-meta"><span>${formatDate(message.createdAt)}</span><span>${categoryName(message.categoryId)}</span><span>${t("responseStatus")}: ${t(message.urgencyKey)}</span><span>${t("sourceLabel")}: ${escapeHtml(message.source)}</span></div>
+      ? `<div class="knowledge-source-row"><span class="knowledge-source-badge">✓ ${t("knowledgeVerified")}</span><button type="button" class="source-button" data-source="${escapeHtml(message.source || "-")}">${t("showSource")}</button></div>
+         <div class="message-meta"><span>${formatDate(message.createdAt)}</span><span>${categoryName(message.categoryId)}</span><span>${t("responseStatus")}: ${t(message.urgencyKey)}</span><span>${t("sourceLabel")}: ${escapeHtml(message.source)}</span></div>
          <div class="rating-row"><button data-rate="${message.id}" class="small-action">${t("useful")}</button><button data-rate="${message.id}" class="small-action">${t("needDoctor")}</button></div>`
       : `<div class="message-meta">${status}${message.role === "staff" ? `<span>${message.readByPatient ? t("readStatus") : t("unreadMessages")}</span>` : ""}</div>`;
     const logo = message.role === "assistant" ? `<img class="message-logo" src="${LOGO_PATH}" alt="Kazakh Oncology Institute">` : "";
     return `<article class="message ${message.role} ${message.escalated ? "escalated" : ""}">${logo}${sender}${attachment}<p>${escapeHtml(message.text).replace(/\n/g, "<br>")}</p>${warning}${meta}</article>`;
   }).join("");
   messages.scrollTop = messages.scrollHeight;
+  updateScrollDownButton();
 }
 
 function renderMessageAttachment(attachment) {
@@ -2643,6 +2687,46 @@ function downloadJson(filename, data) {
   URL.revokeObjectURL(url);
 }
 
+let aiBusy = false;
+
+function setAiBusy(value) {
+  aiBusy = Boolean(value);
+  const indicator = byId("ai-typing");
+  const send = document.querySelector("#chat-form .send-button");
+  indicator?.classList.toggle("hidden", !aiBusy);
+  if (send) send.disabled = aiBusy;
+}
+
+function updateConnectionState() {
+  const banner = byId("connection-banner");
+  if (!banner) return;
+  banner.classList.toggle("hidden", navigator.onLine !== false);
+}
+
+function updateScrollDownButton() {
+  const messages = byId("messages");
+  const button = byId("scroll-to-bottom");
+  if (!messages || !button) return;
+  const distance = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
+  const show = messages.scrollHeight > messages.clientHeight + 80 && distance > 120;
+  button.classList.toggle("hidden", !show);
+}
+
+function toggleMobileProfile(forceOpen = null) {
+  const menu = byId("mobile-profile-menu");
+  const button = byId("mobile-profile-button");
+  if (!menu || !button) return;
+  const open = forceOpen === null ? menu.classList.contains("hidden") : Boolean(forceOpen);
+  menu.classList.toggle("hidden", !open);
+  button.setAttribute("aria-expanded", String(open));
+  byId("mobile-language-button")?.setAttribute("aria-expanded", String(open));
+}
+
+function updateVisualViewportHeight() {
+  const height = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
+}
+
 function render() {
   localizePage();
   renderSession();
@@ -2671,6 +2755,7 @@ function closeMobilePanels() {
   historyButton?.setAttribute("aria-expanded", "false");
   routePanel?.classList.add("hidden");
   routeButton?.setAttribute("aria-expanded", "false");
+  toggleMobileProfile(false);
 }
 
 function init() {
@@ -2734,10 +2819,24 @@ function init() {
     render();
   });
   byId("top-logout-button").addEventListener("click", () => byId("logout-button").click());
-  byId("mobile-logout-button")?.addEventListener("click", () => byId("logout-button").click());
-  byId("mobile-language-button")?.addEventListener("click", () => {
-    const nextIndex = (languages.indexOf(currentLang) + 1) % languages.length;
-    setLanguage(languages[nextIndex]);
+  byId("mobile-language-button")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleMobileProfile();
+  });
+  byId("mobile-profile-button")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleMobileProfile();
+  });
+  byId("mobile-profile-open")?.addEventListener("click", () => {
+    toggleMobileProfile(false);
+    if (currentMode === "patient") setActiveView("patient");
+    else byId("profile-button")?.click();
+  });
+  byId("mobile-profile-logout")?.addEventListener("click", () => {
+    if (window.confirm(`${t("confirmLogoutTitle")}\n${t("confirmLogoutText")}`)) {
+      toggleMobileProfile(false);
+      byId("logout-button").click();
+    }
   });
   byId("mobile-history-button")?.addEventListener("click", () => {
     const chatList = document.querySelector(".chat-list");
@@ -2756,10 +2855,6 @@ function init() {
     byId("mobile-route-panel")?.classList.add("hidden");
     byId("mobile-route-button")?.setAttribute("aria-expanded", "false");
   });
-  byId("mobile-user-avatar")?.addEventListener("click", () => {
-    if (currentMode === "patient") setActiveView("patient");
-    else byId("profile-button")?.click();
-  });
   byId("profile-button").addEventListener("click", () => {
     const staff = currentStaffUser();
     if (!staff) return;
@@ -2771,14 +2866,45 @@ function init() {
     if (openButton) openPatientFile(openButton.dataset.openFile);
     if (downloadButton) downloadPatientFile(downloadButton.dataset.downloadFile);
   });
+  document.body.addEventListener("click", (event) => {
+    const sourceButton = event.target.closest("[data-source]");
+    if (sourceButton) alert(`${t("sourceLabel")}: ${sourceButton.dataset.source || "-"}`);
+    if (!event.target.closest("#mobile-profile-menu") && !event.target.closest("#mobile-profile-button") && !event.target.closest("#mobile-language-button")) {
+      toggleMobileProfile(false);
+    }
+  });
+  byId("scroll-to-bottom")?.addEventListener("click", () => {
+    const messages = byId("messages");
+    messages?.scrollTo({ top: messages.scrollHeight, behavior: "smooth" });
+  });
+  byId("messages")?.addEventListener("scroll", updateScrollDownButton, { passive: true });
+  window.addEventListener("online", updateConnectionState);
+  window.addEventListener("offline", updateConnectionState);
+  updateConnectionState();
+  updateVisualViewportHeight();
+  window.visualViewport?.addEventListener("resize", updateVisualViewportHeight);
+  window.addEventListener("resize", updateVisualViewportHeight);
   document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => setActiveView(button.dataset.view)));
   byId("chat-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    sendMessage(byId("message-input").value, pendingAttachment);
+    if (aiBusy) return;
+    if (navigator.onLine === false) {
+      updateConnectionState();
+      byId("message-input")?.focus();
+      return;
+    }
+    const text = byId("message-input").value;
+    const attachment = pendingAttachment;
+    if (!text.trim() && !attachment) return;
     byId("message-input").value = "";
     pendingAttachment = null;
     byId("patient-doc-input").value = "";
     renderAttachmentPreview();
+    setAiBusy(true);
+    window.setTimeout(() => {
+      setAiBusy(false);
+      sendMessage(text, attachment);
+    }, 420);
   });
   byId("quick-prompts").addEventListener("click", (event) => {
     const button = event.target.closest("button");

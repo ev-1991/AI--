@@ -66,12 +66,25 @@
             <span><i class="mobile-online-dot"></i><span data-i18n="appEyebrow"></span></span>
           </div>
           <div class="mobile-appbar-actions">
-            <button id="mobile-language-button" class="mobile-icon-button mobile-language-button" type="button" aria-label="Сменить язык">RU</button>
-            <div class="mobile-avatar-wrap" title="Профиль">
+            <button id="mobile-language-button" class="mobile-icon-button mobile-language-button" type="button" aria-label="Сменить язык" aria-expanded="false">🌐</button>
+            <button id="mobile-profile-button" class="mobile-avatar-wrap" type="button" aria-label="Профиль" aria-expanded="false">
               <span id="mobile-user-avatar" class="mobile-avatar">П</span>
               <i class="mobile-avatar-dot"></i>
-            </div>
+            </button>
           </div>
+          <section id="mobile-profile-menu" class="mobile-profile-menu hidden" aria-label="Профиль пользователя">
+            <div class="mobile-profile-head">
+              <span id="mobile-profile-name">Пациент</span>
+              <small id="mobile-profile-role" data-i18n="patientProfileLabel">Профиль пациента</small>
+            </div>
+            <button id="mobile-profile-open" class="mobile-profile-action" type="button"><span>👤</span><span data-i18n="profileButton"></span></button>
+            <div class="mobile-language-row" aria-label="Язык интерфейса">
+              <button type="button" data-lang="ru">RU</button>
+              <button type="button" data-lang="kz">KZ</button>
+              <button type="button" data-lang="en">EN</button>
+            </div>
+            <button id="mobile-profile-logout" class="mobile-profile-action danger" type="button"><span>↪</span><span data-i18n="logout"></span></button>
+          </section>
         </div>
 
         <nav class="mobile-main-nav main-nav" aria-label="Основные разделы">
@@ -136,7 +149,11 @@
         </header>
 
         <section id="chat" class="view active">
-          <div class="patient-notice"><strong data-i18n="mainRuleTitle"></strong> <span data-i18n="mainRuleText"></span></div>
+          <div id="connection-banner" class="connection-banner hidden" role="status"><span>●</span><span data-i18n="offlineMessage">Нет соединения. Проверьте интернет.</span></div>
+          <details class="patient-notice" id="patient-safety-note">
+            <summary><span>ⓘ</span><span data-i18n="safetyShort">AI не ставит диагноз и не заменяет врача</span><span class="notice-chevron">⌄</span></summary>
+            <div class="patient-notice-details"><strong data-i18n="mainRuleTitle"></strong> <span data-i18n="mainRuleText"></span></div>
+          </details>
           <div class="chat-layout">
             <aside class="chat-list">
               <button id="new-chat" class="primary-button" data-i18n="newChat"></button>
@@ -155,6 +172,9 @@
                 <div class="quick-prompts" id="quick-prompts"></div>
               </div>
               <div id="messages" class="messages" aria-live="polite"></div>
+              <button id="scroll-to-bottom" class="scroll-to-bottom hidden" type="button" aria-label="К последнему сообщению">↓</button>
+              <button id="mobile-route-button" class="mobile-route-fab" type="button" aria-expanded="false"><span>⌘</span><span data-i18n="routeTitle"></span></button>
+              <div id="ai-typing" class="ai-typing hidden" role="status" aria-live="polite"><i></i><span data-i18n="aiSearching">Поиск в базе знаний…</span></div>
               <div id="attachment-preview" class="attachment-preview hidden"></div>
               <form id="chat-form" class="composer">
                 <label class="attach-button" data-i18n-title="attachDocument">
@@ -166,22 +186,17 @@
               </form>
             </section>
           </div>
-          <div class="mobile-chat-tools">
-            <button id="mobile-route-button" class="mobile-tool-button route" type="button" aria-expanded="false">
-              <span class="mobile-tool-icon">⌘</span>
-              <span><strong data-i18n="routeTitle"></strong><small data-i18n="routeMobileHint">Путь пациента</small></span>
-            </button>
-            <button id="mobile-logout-button" class="mobile-tool-button logout" type="button">
-              <span class="mobile-tool-icon">↪</span>
-              <span><strong data-i18n="logout"></strong><small data-i18n="logoutMobileHint">Завершить сеанс</small></span>
-            </button>
-          </div>
-          <section id="mobile-route-panel" class="mobile-route-panel hidden" aria-live="polite">
-            <div>
-              <span class="eyebrow" data-i18n="routeTitle"></span>
-              <p data-i18n="routeText"></p>
+          <section id="mobile-route-panel" class="mobile-route-panel hidden" aria-live="polite" aria-modal="true">
+            <div class="mobile-route-handle"></div>
+            <div class="mobile-route-head">
+              <div>
+                <span class="eyebrow" data-i18n="routeTitle"></span>
+                <strong data-i18n="routeMobileHint">Путь пациента</strong>
+              </div>
+              <button id="mobile-route-close" class="secondary-button compact" type="button" aria-label="Закрыть">×</button>
             </div>
-            <button id="mobile-route-close" class="secondary-button compact" type="button" aria-label="Закрыть">×</button>
+            <p data-i18n="routeText"></p>
+            <div class="mobile-route-steps" aria-hidden="true"><span>1</span><i></i><span>2</span><i></i><span>3</span><i></i><span>4</span></div>
           </section>
         </section>
 
